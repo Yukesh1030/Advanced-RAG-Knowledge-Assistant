@@ -1,140 +1,126 @@
+# Advanced RAG Knowledge Assistant
+
 <div align="center">
 
-# 🧠 Advanced RAG Knowledge Assistant
-
-**Upload PDFs, ask questions, and get answers grounded in your documents — with sources.**
-
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-Vite-61DAFB?logo=react&logoColor=black)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-FF6F00)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.162.0-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-Persistent_Vector_DB-FF6F00)
 ![Groq](https://img.shields.io/badge/LLM-Groq-F55036)
-![Tests](https://img.shields.io/badge/Tests-Pytest-0A9EDC?logo=pytest&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Pytest](https://img.shields.io/badge/Tests-Pytest-0A9EDC?logo=pytest&logoColor=white)
 
-![Demo](docs/demo.gif)
+**Upload PDFs, ask questions, and get answers grounded in your documents with source references.**
 
 </div>
 
----
+A full-stack Retrieval-Augmented Generation (RAG) application for local PDF knowledge retrieval. Users can upload PDFs, index them into a persistent vector store, and ask questions about the content. The app retrieves relevant chunks using hybrid search and sends those passages to a Groq model to generate grounded answers.
 
-## 📖 Overview
+Repository: https://github.com/Yukesh1030/Advanced-RAG-Knowledge-Assistant
 
-**Advanced RAG Knowledge Assistant** is a full-stack Retrieval-Augmented Generation (RAG) application. Users upload PDF documents, the system indexes them, and a language model answers questions using only the passages retrieved from those documents, so answers can be traced back to their sources.
+## Overview
 
-### Why hybrid retrieval?
+This project combines semantic retrieval, keyword matching, and LLM-based answer generation to create a local document assistant. It is designed to work well for personal knowledge bases, research documents, and internal PDFs where source-traceability matters.
 
-Pure vector search understands *meaning* but can miss exact terms such as names, IDs, and acronyms. Pure keyword search finds exact terms but misses paraphrases. This project combines both:
+The backend validates uploaded files, extracts text from PDF pages, chunks the content, embeds it with a sentence-transformers model, stores it in ChromaDB, and then answers user questions with evidence-based context.
 
-- **Semantic search** with ChromaDB and `all-MiniLM-L6-v2` embeddings
-- **Keyword search** with BM25
-- **Reciprocal Rank Fusion (RRF)** to merge both rankings into one result list, with no score normalization needed
+## Features
 
-## ✨ Features
+- Upload and validate PDF files through a FastAPI API
+- Reject invalid files, duplicates, and oversized uploads
+- Extract text page by page using pypdf
+- Split long documents into overlapping chunks for better retrieval
+- Generate embeddings with sentence-transformers/all-MiniLM-L6-v2
+- Store indexed content in a persistent ChromaDB collection
+- Use hybrid retrieval: semantic search + BM25 + reciprocal rank fusion
+- Answer questions grounded in document context
+- Return source filename and page information in responses
+- List and delete uploaded PDFs from the knowledge base
+- Provide a modern React + Vite frontend
+- Run automated tests for API and retrieval behavior
 
-- 📄 Upload PDFs and index their contents
-- ✂️ Text extraction with overlapping chunking to preserve context
-- 🔎 Hybrid retrieval: ChromaDB semantic search + BM25, fused with RRF
-- 💬 Question answering grounded in retrieved context, powered by Groq
-- 📌 Source information returned with answers
-- 🗂️ List and delete indexed documents through the API
-- ⚛️ React + Vite frontend connected to a FastAPI backend
-- 🛡️ PDF validation and file-size limits
-- ✅ Automated tests for the API, indexing, and retrieval
+## Tech Stack
 
-## 🖼️ Screenshots
+### Backend
+- Python 3.10+
+- FastAPI
+- Uvicorn
+- ChromaDB
+- LangChain + LangChain Chroma
+- Hugging Face embeddings
+- pypdf
+- rank-bm25
+- python-dotenv
+- Groq Python SDK
 
-| Upload & Index | Ask & Get Sourced Answers |
-|---|---|
-| ![Upload](docs/screenshot-upload.png) | ![Answer](docs/screenshot-answer.png) |
+### Frontend
+- React
+- Vite
+- JavaScript
+- CSS
 
-<details>
-<summary>API documentation (Swagger UI)</summary>
+### Testing
+- Pytest
+- FastAPI TestClient
 
-![Swagger](docs/screenshot-swagger.png)
+## Architecture
 
-</details>
-
-## 🏗️ Architecture
-
-```mermaid
-flowchart LR
-    subgraph Indexing
-        A[PDF Upload] --> B[Validation + Text Extraction]
-        B --> C[Overlapping Chunks]
-        C --> D[Embeddings<br/>all-MiniLM-L6-v2]
-        D --> E[(ChromaDB)]
-        C --> F[BM25 Index]
-    end
-
-    subgraph Querying
-        Q[User Question] --> G[Semantic Search]
-        Q --> H[BM25 Keyword Search]
-        E --> G
-        F --> H
-        G --> I[Reciprocal Rank Fusion]
-        H --> I
-        I --> J[Top Passages as Context]
-        J --> K[Groq LLM]
-        K --> L[Answer + Sources]
-    end
+```text
+User / Frontend
+      |
+      v
+React UI (Vite)
+      |
+      v
+FastAPI backend
+      |
+      +--> PDF validation + upload
+      +--> Text extraction + chunking
+      +--> Embedding + ChromaDB indexing
+      +--> Hybrid retrieval (semantic + BM25)
+      +--> Groq LLM answer generation
 ```
 
-### How it works
+## Project Structure
 
-1. **Upload:** The API validates the PDF (type and size) and extracts its text.
-2. **Chunking:** Text is split into overlapping chunks so context is not lost at boundaries.
-3. **Embedding:** Each chunk is embedded with `sentence-transformers/all-MiniLM-L6-v2`.
-4. **Indexing:** Chunks and source metadata are stored in a persistent ChromaDB collection.
-5. **Retrieval:** Semantic results and BM25 keyword results are merged using Reciprocal Rank Fusion.
-6. **Generation:** The top passages are sent as context to the configured Groq language model.
-7. **Sources:** The response includes source details so answers can be checked against the original documents.
-
-## 🧰 Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React, Vite, CSS |
-| Backend | Python, FastAPI, Uvicorn |
-| Vector store | ChromaDB |
-| Embeddings | Sentence Transformers (`all-MiniLM-L6-v2`) |
-| Keyword search | `rank-bm25` |
-| PDF parsing | `pypdf` |
-| LLM provider | Groq API |
-| Testing | Pytest |
-
-## 📁 Project Structure
-
-```
-Advanced-RAG-Knowledge-Assistant/
+```text
+advanced-rag-assistant/
 ├── app/
-│   ├── main.py                   # FastAPI app and routes
+│   ├── main.py
 │   └── services/
-│       ├── document_service.py   # Document listing / deletion
-│       ├── ingestion_service.py  # PDF parsing and chunking
-│       ├── vector_store.py       # ChromaDB + BM25 + RRF retrieval
-│       └── rag_service.py        # Prompting and answer generation
-├── frontend/                     # React + Vite UI
+│       ├── document_service.py
+│       ├── ingestion_service.py
+│       ├── rag_service.py
+│       └── vector_store.py
+├── data/
+│   ├── chroma_db/
+│   └── documents/
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   ├── vite.config.js
+│   └── index.html
 ├── tests/
 │   ├── test_api.py
 │   ├── test_indexing.py
 │   └── test_retrieval.py
-├── docs/                         # Screenshots and demo GIF
-├── data/                         # Local only (not committed)
-│   ├── chroma_db/                # Vector database
-│   └── documents/                # Uploaded PDFs
-├── requirements.txt
-├── .env                          # Local secrets (not committed)
 ├── .gitignore
-└── README.md
+├── .env                   # local secrets (not committed)
+├── README.md
+├── requirements.txt
+└── .gitignore
 ```
 
-## ✅ Prerequisites
+## Prerequisites
+
+Before you begin, make sure you have:
 
 - Python 3.10 or newer
-- Node.js and npm
+- Node.js 18+ and npm
 - Git
-- A [Groq API key](https://console.groq.com/) (for answer generation)
+- A Groq API key
+
+Check the installed versions:
 
 ```bash
 python --version
@@ -142,206 +128,207 @@ node --version
 npm --version
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
-### 1. Clone the repository
+### 1) Clone the repository
 
 ```bash
 git clone https://github.com/Yukesh1030/Advanced-RAG-Knowledge-Assistant.git
 cd Advanced-RAG-Knowledge-Assistant
 ```
 
-### 2. Set up the backend
-
-**Windows (PowerShell):**
-
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-**macOS / Linux:**
+### 2) Create a virtual environment
 
 ```bash
-python3 -m venv venv
+python -m venv venv
+```
+
+Windows (PowerShell):
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
+```bash
 source venv/bin/activate
+```
+
+### 3) Install Python dependencies
+
+```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-> The first run downloads the embedding model, so it may take a few minutes and needs an internet connection.
+### 4) Install frontend dependencies
 
-### 3. Configure your API key
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 5) Configure environment variables
 
 Create a `.env` file in the repository root:
 
 ```env
 GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=openai/gpt-oss-120b
 ```
 
-Replace the placeholder with your own key. **Never commit `.env` or share your key.** The Groq model name is configured in the backend source code.
+Notes:
+- Never commit `.env` files
+- The backend reads the key from the project root `.env`
+- You can change the Groq model by updating `GROQ_MODEL`
 
-### 4. Start the backend
+### 6) Start the backend
 
-From the repository root, with the virtual environment activated:
+From the project root:
 
 ```bash
-python -m uvicorn main:app --app-dir app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-| URL | Purpose |
-|---|---|
-| http://127.0.0.1:8000 | API base URL |
-| http://127.0.0.1:8000/docs | Interactive Swagger documentation |
-| http://127.0.0.1:8000/health | Health check |
+Available endpoints:
 
-### 5. Start the frontend
+- http://127.0.0.1:8000
+- http://127.0.0.1:8000/docs
+- http://127.0.0.1:8000/health
 
-Open a second terminal:
+### 7) Start the frontend
+
+Open a second terminal and run:
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (commonly http://localhost:5173).
+Then open the local Vite URL shown in the terminal, usually:
 
-### 6. Try it out
+- http://localhost:5173
 
-1. Upload a PDF in the UI.
-2. Wait for indexing to finish.
-3. Ask a question about the document.
-4. Review the answer and its sources.
-
-## 🔌 API Reference
+## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/` | Basic API information |
-| `GET` | `/health` | Health check |
-| `GET` | `/documents` | List indexed documents |
-| `POST` | `/upload` | Upload and index a PDF |
-| `POST` | `/ask` | Ask a question about indexed content |
-| `DELETE` | `/documents/{filename}` | Delete a document |
+| GET | `/` | Basic API information |
+| GET | `/health` | Health check |
+| GET | `/documents` | List uploaded PDFs |
+| POST | `/upload` | Upload and index a PDF |
+| POST | `/ask` | Ask a question about the indexed documents |
+| DELETE | `/documents/{filename}` | Delete a PDF and its indexed chunks |
 
-Full request/response schemas are available at `/docs` while the backend is running.
+### Example upload
 
-<details>
-<summary>Example: ask a question with cURL</summary>
+```bash
+curl -X POST "http://127.0.0.1:8000/upload" \
+  -H "accept: application/json" \
+  -F "file=@your_document.pdf"
+```
 
-The request body may differ slightly from this sketch; check `/docs` for the exact schema.
+### Example question
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/ask" \
   -H "Content-Type: application/json" \
-  -d '{"question": "What are the key points of the document?"}'
+  -d '{"question":"What are the key findings in this document?"}'
 ```
 
-</details>
+## How the RAG Flow Works
 
-## 🧪 Running Tests
+1. A PDF is uploaded through the API.
+2. The system validates the file name, MIME signature, and size.
+3. Text is extracted page by page.
+4. The content is split into overlapping chunks to preserve context.
+5. Chunks are embedded using the Hugging Face model `sentence-transformers/all-MiniLM-L6-v2`.
+6. The embeddings are stored in ChromaDB with metadata such as filename and page number.
+7. A user asks a question.
+8. The project performs hybrid retrieval:
+   - semantic similarity search from ChromaDB
+   - BM25 keyword search over indexed chunks
+   - reciprocal rank fusion to combine both rankings
+9. The strongest chunks are passed to Groq as context.
+10. The model responds with an answer and source references when available.
 
-From the repository root, with the virtual environment activated:
+## Design Notes
+
+- Hybrid retrieval improves recall over vector-only search because it handles both paraphrases and exact terms.
+- Reciprocal Rank Fusion avoids forcing BM25 and semantic scores onto the same scale.
+- Overlapping chunks reduce the risk of cutting answers across chunk boundaries.
+- Answers are source-grounded and can be checked against the original PDF pages.
+
+## Data Storage
+
+The project stores data locally in the repository:
+
+- PDFs: `data/documents/`
+- Vector database: `data/chroma_db/`
+
+These folders are meant for local development and should not be committed if they contain private or sensitive documents.
+
+## Testing
+
+Run the full test suite from the repository root:
 
 ```bash
 python -m pytest -v
 ```
 
-The test suite covers API behavior, document indexing, and retrieval.
+Current tests cover:
 
-## 🎯 Design Decisions
+- API behavior
+- upload validation
+- document listing and deletion
+- indexing logic
+- retrieval logic
 
-- **Hybrid retrieval over vector-only search.** Semantic search handles paraphrases; BM25 handles exact keywords. Fusing the two improves coverage for queries containing names, codes, or technical terms.
-- **Reciprocal Rank Fusion.** RRF combines rankings by position rather than raw score, so cosine similarity and BM25 scores do not need to be normalized onto the same scale.
-- **Overlapping chunks.** Overlap reduces the chance that an answer is split across a chunk boundary.
-- **Source-grounded answers.** Returning source metadata lets users verify answers instead of trusting the model blindly.
-- **Service-layer separation.** Ingestion, vector storage, document management, and generation live in separate modules, which keeps the code easier to test and extend.
+## Security and Notes
 
-## 🛣️ Roadmap
+- Do not commit `.env` files or API keys
+- Do not upload confidential or personal documents to a public repository
+- This project is intended for local development and personal knowledge management
+- This is not a hardened production deployment setup
 
-- [ ] Docker and docker-compose setup
-- [ ] Streaming responses
-- [ ] Retrieval evaluation (hit rate / MRR) comparing semantic-only vs. hybrid
-- [ ] Support for DOCX, TXT, and web pages
-- [ ] Re-ranking with a cross-encoder
-- [ ] Conversation history and follow-up questions
-- [ ] Cloud deployment with a live demo
+## Troubleshooting
 
-## 🔒 Data & Security Notes
+### Groq API key missing
 
-- Do not commit `.env` files, virtual environments, `node_modules`, local ChromaDB data, or uploaded PDFs.
-- Do not upload confidential or personal documents while testing in a public repository or shared environment.
-- Never place API keys in source code, screenshots, issues, or commits. If a key is ever exposed, revoke it and create a new one.
-- Local ChromaDB data is ignored by Git. After cloning, re-upload your PDFs to rebuild the knowledge base.
-- This README describes local development, not production deployment or hardening.
+Check that `.env` exists at the project root and contains:
 
-## 🩺 Troubleshooting
+```env
+GROQ_API_KEY=your_key_here
+```
 
-<details>
-<summary><b><code>GROQ_API_KEY</code> is missing</b></summary>
+### Frontend cannot reach the backend
 
-- Check that `.env` exists in the repository root and contains your key.
-- Restart the backend after changing environment variables.
-- Don't share the key in logs, screenshots, or chat.
+Make sure the backend is running on port `8000` and the frontend is configured to use the same API URL.
 
-</details>
+### No relevant answer returned
 
-<details>
-<summary><b>The frontend can't reach the API</b></summary>
+- confirm the PDF was uploaded successfully
+- verify the PDF was indexed
+- ask a question directly related to the uploaded document
+- check whether the ChromaDB data still exists
 
-- Confirm the backend is running on port `8000`.
-- Check the API base URL configured in the frontend.
-- Confirm the backend's CORS settings allow the frontend's local origin.
+### Dependency installation issues
 
-</details>
+Make sure the virtual environment is active and Python/Node versions are compatible with the project.
 
-<details>
-<summary><b>Answers aren't relevant</b></summary>
+## License
 
-- Confirm the PDF uploaded and indexed successfully.
-- Ask about something the uploaded document actually covers.
-- Scanned PDFs without selectable text can't be read by text extraction (OCR isn't included).
-- Re-index your documents if the local vector database was removed.
+No license has been specified for this repository yet. Until a license is added, treat the code as not officially licensed for redistribution or reuse.
 
-</details>
+## Author
 
-<details>
-<summary><b>Dependency installation fails</b></summary>
+Yukesh G
 
-- Confirm the virtual environment is active.
-- Check your Python and Node.js versions.
-- Upgrade pip: `python -m pip install --upgrade pip`.
-
-</details>
-
-## 🤝 Contributing
-
-Suggestions and improvements are welcome.
-
-1. Fork the repository
-2. Create a branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m "feat: add your feature"`
-4. Push the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-**Yukesh G**
-
-- GitHub: [@Yukesh1030](https://github.com/Yukesh1030)
-- LinkedIn: [linkedin.com/in/yukesh-g](https://www.linkedin.com/in/yukesh-g)
+- GitHub: https://github.com/Yukesh1030
+- LinkedIn: https://www.linkedin.com/in/yukesh-g
 
 ---
 
-<div align="center">
-
-⭐ If you found this project useful, consider giving it a star!
-
-</div>
+If you found this project useful, consider giving it a star on GitHub.
